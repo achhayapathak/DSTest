@@ -87,6 +87,25 @@ func MerkleProof(leafNode *MerkleNode) ([][]byte, []bool) {
 	return proof, isLeft
 }
 
+func VerifyMerkleProof(result *MerkleNode, node string, proof [][]byte, isLeft []bool) bool {
+	nodeHash := sha256.Sum256([]byte(node))
+
+	for i:=0; i<len(proof); i++ {
+		tempArray := []byte{}
+		if isLeft[i] {
+			tempArray = append(tempArray[:], proof[i][:]...)
+			tempArray = append(tempArray[:], nodeHash[:]...)
+			} else {
+				tempArray = append(tempArray[:], nodeHash[:]...)
+				tempArray = append(tempArray[:], proof[i][:]...)
+			}
+
+		nodeHash = sha256.Sum256([]byte(tempArray))
+	}
+
+	return nodeHash == [32]byte(result.Hashvalue)
+}
+
 func main() {
 	LeafMap := make(map[string]*MerkleNode)
 
@@ -98,7 +117,11 @@ func main() {
 
 	fmt.Println("The Root Hash is:", str)
 
-	proof, isLeft := MerkleProof(LeafMap["david"])
+	verificationNode := "david"
 
-	fmt.Println("Merkle proof for david", proof, isLeft)
+	proof, isLeft := MerkleProof(LeafMap[verificationNode])
+
+	// fmt.Println("Merkle proof for david", proof, isLeft)
+
+	fmt.Println("Is tree correctly verified for", verificationNode, ":", VerifyMerkleProof(result, verificationNode, proof, isLeft))
 }
