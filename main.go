@@ -76,7 +76,7 @@ func MerkleProof(leafNode *MerkleNode) ([][]byte, []bool) {
 		if leafNode.Parent.LeftChild == leafNode {
 			proof = append(proof, leafNode.Parent.RightChild.Hashvalue)
 			isLeft = append(isLeft, false)
-			} else {
+		} else {
 			proof = append(proof, leafNode.Parent.LeftChild.Hashvalue)
 			isLeft = append(isLeft, true)
 		}
@@ -90,15 +90,15 @@ func MerkleProof(leafNode *MerkleNode) ([][]byte, []bool) {
 func VerifyMerkleProof(result *MerkleNode, node string, proof [][]byte, isLeft []bool) bool {
 	nodeHash := sha256.Sum256([]byte(node))
 
-	for i:=0; i<len(proof); i++ {
+	for i := 0; i < len(proof); i++ {
 		tempArray := []byte{}
 		if isLeft[i] {
 			tempArray = append(tempArray[:], proof[i][:]...)
 			tempArray = append(tempArray[:], nodeHash[:]...)
-			} else {
-				tempArray = append(tempArray[:], nodeHash[:]...)
-				tempArray = append(tempArray[:], proof[i][:]...)
-			}
+		} else {
+			tempArray = append(tempArray[:], nodeHash[:]...)
+			tempArray = append(tempArray[:], proof[i][:]...)
+		}
 
 		nodeHash = sha256.Sum256([]byte(tempArray))
 	}
@@ -107,21 +107,28 @@ func VerifyMerkleProof(result *MerkleNode, node string, proof [][]byte, isLeft [
 }
 
 func main() {
+	// Map to store LeafNode references.
 	LeafMap := make(map[string]*MerkleNode)
 
 	Input := []string{"alice", "bob", "charlie", "david", "erin", "fiona", "george", "hannah"}
 
+	// result contains reference to the Merkle root of the tree
 	result := ConstructTree(Input, LeafMap)
 
+	// converting root hash to hexadecimal human readable form
 	str := hex.EncodeToString(result.Hashvalue)
 
 	fmt.Println("The Root Hash is:", str)
 
+	// node value for which you want to verify the Merkle tree
 	verificationNode := "david"
 
+	// proof array contains the hashes and isLeft marks whether hash correspond to left child or right child
 	proof, isLeft := MerkleProof(LeafMap[verificationNode])
 
 	// fmt.Println("Merkle proof for david", proof, isLeft)
 
-	fmt.Println("Is tree correctly verified for", verificationNode, ":", VerifyMerkleProof(result, verificationNode, proof, isLeft))
+	verificationValue := VerifyMerkleProof(result, verificationNode, proof, isLeft)
+
+	fmt.Println("Is tree correctly verified for", verificationNode, ":", verificationValue)
 }
