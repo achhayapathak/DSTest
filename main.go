@@ -20,21 +20,21 @@ type MerkleNode struct {
 	Parent     *MerkleNode
 }
 
-func ConstructTree(values []string, LeafMap map[string]MerkleNode) *MerkleNode {
-	hashValues := []MerkleNode{}
+func ConstructTree(values []string, LeafMap map[string]*MerkleNode) *MerkleNode {
+	hashValues := []*MerkleNode{}
 
 	for _, val := range values {
 
 		sum := sha256.Sum256([]byte(val))
 		node := MerkleNode{sum[:], nil, nil, nil}
 
-		hashValues = append(hashValues, node)
+		hashValues = append(hashValues, &node)
 
-		LeafMap[val] = node
+		LeafMap[val] = &node
 	}
 
 	for len(hashValues) > 1 {
-		tempHashes := []MerkleNode{}
+		tempHashes := []*MerkleNode{}
 
 		for i := 0; i < len(hashValues); i += 2 {
 			tempArray := []byte{}
@@ -50,26 +50,45 @@ func ConstructTree(values []string, LeafMap map[string]MerkleNode) *MerkleNode {
 			var node MerkleNode
 
 			if i+1 == len(hashValues) {
-				node = MerkleNode{sum[:], &hashValues[i], &hashValues[i], nil}
+				node = MerkleNode{sum[:], hashValues[i], hashValues[i], nil}
 				hashValues[i].Parent = &node
 			} else {
-				node = MerkleNode{sum[:], &hashValues[i], &hashValues[i+1], nil}
+				node = MerkleNode{sum[:], hashValues[i], hashValues[i+1], nil}
 				hashValues[i].Parent = &node
 				hashValues[i+1].Parent = &node
 			}
 
-			tempHashes = append(tempHashes, node)
+			tempHashes = append(tempHashes, &node)
 		}
 
 		hashValues = tempHashes
 
 	}
 
-	return &hashValues[0]
+	return hashValues[0]
+}
+
+func MerkleProof(leafNode *MerkleNode) ([][]byte, []bool) {
+	proof := [][]byte{}
+	isLeft := []bool{}
+
+	for leafNode.Parent != nil {
+		if leafNode.Parent.LeftChild == leafNode {
+			proof = append(proof, leafNode.Parent.RightChild.Hashvalue)
+			isLeft = append(isLeft, false)
+			} else {
+			proof = append(proof, leafNode.Parent.LeftChild.Hashvalue)
+			isLeft = append(isLeft, true)
+		}
+
+		leafNode = leafNode.Parent
+	}
+
+	return proof, isLeft
 }
 
 func main() {
-	LeafMap := make(map[string]MerkleNode)
+	LeafMap := make(map[string]*MerkleNode)
 
 	Input := []string{"alice", "bob", "charlie", "david", "erin", "fiona", "george", "hannah"}
 
@@ -78,4 +97,8 @@ func main() {
 	str := hex.EncodeToString(result.Hashvalue)
 
 	fmt.Println("The Root Hash is:", str)
+
+	proof, isLeft := MerkleProof(LeafMap["david"])
+
+	fmt.Println("Merkle proof for david", proof, isLeft)
 }
